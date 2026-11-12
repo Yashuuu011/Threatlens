@@ -40,11 +40,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/events', label: 'Security Events Explorer', icon: FileSearch },
   { to: '/alerts', label: 'Alerts Management', icon: AlertTriangle },
   { to: '/rules', label: 'Threat Detection Rules', icon: Sliders },
-  { to: '/detections', label: 'MITRE ATT&CK Matrix', icon: ShieldAlert },
   { to: '/incidents', label: 'Incident Investigation', icon: Activity },
-  { to: '/threat-intelligence', label: 'Threat Intelligence', icon: Globe },
-  { to: '/analytics', label: 'Analytics & Reports', icon: BarChart3 },
-  { to: '/system', label: 'System Monitoring', icon: Settings },
+  { to: '/system', label: 'System Configuration', icon: Settings },
 ];
 
 export const MainLayout: React.FC<{ onRealtimeRefresh?: () => void }> = ({

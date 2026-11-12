@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileCheck2,
   FolderPlus,
+  Globe,
   Link2,
   MessageSquare,
   Plus,
@@ -30,6 +31,7 @@ import {
   SeverityBadge,
 } from '../components/SeverityBadge';
 import { formatTimestamp } from '../utils/formatters';
+import { ThreatIntelModal } from '../components/ThreatIntelModal';
 
 const INCIDENT_STATUSES: IncidentStatus[] = [
   'Open',
@@ -75,6 +77,30 @@ export const IncidentInvestigationPage: React.FC = () => {
   const [evidenceDesc, setEvidenceDesc] = useState<string>('');
 
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Threat Intelligence Enrichment State
+  const [threatIntelOpen, setThreatIntelOpen] = useState(false);
+  const [threatIntelIp, setThreatIntelIp] = useState<string>('');
+
+  const handleOpenThreatIntel = (ip?: string) => {
+    const defaultIp =
+      ip ||
+      selectedIncident?.related_alerts?.find((a) => a.source_ip)?.source_ip ||
+      '185.220.101.42';
+    setThreatIntelIp(defaultIp);
+    setThreatIntelOpen(true);
+  };
+
+  const handleAttachIntelToIncident = async (intelNote: string) => {
+    if (!selectedIncident) return;
+    try {
+      await api.addIncidentNote(selectedIncident.incident_id, intelNote, 'evidence_note');
+      setFeedback('Attached threat intelligence verdict to incident notes.');
+      await selectIncident(selectedIncident.incident_id);
+    } catch (err: any) {
+      setFeedback(`Failed to attach threat intel note: ${err.message}`);
+    }
+  };
 
   // Create Incident Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -462,6 +488,15 @@ export const IncidentInvestigationPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenThreatIntel()}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#151f32] hover:bg-[#1e2c45] border border-cyan-500/40 text-cyan-300 text-[11px] font-medium"
+                        title="Enrich incident with on-demand Threat Intelligence"
+                      >
+                        <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                        Enrich Threat Intel
+                      </button>
                       <a
                         href={api.getIncidentCsvReportUrl(selectedIncident.incident_id)}
                         download
@@ -669,8 +704,18 @@ export const IncidentInvestigationPage: React.FC = () => {
                           {al.title}
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-400 font-mono">
-                          <span>
+                          <span className="flex items-center gap-1.5">
                             {al.rule_code} • IP: {al.source_ip || '—'}
+                            {al.source_ip && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenThreatIntel(al.source_ip!)}
+                                className="text-cyan-400 hover:underline flex items-center gap-0.5 text-[10px]"
+                                title="Check Threat Intel for this IP"
+                              >
+                                <Globe className="w-2.5 h-2.5" /> TI
+                              </button>
+                            )}
                           </span>
                           {al.mitre_technique_id && (
                             <span className="text-blue-300">
@@ -706,7 +751,7 @@ export const IncidentInvestigationPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate('/detections')}
+                      onClick={() => navigate('/rules?tab=mitre')}
                       className="text-[11px] text-cyan-400 hover:underline"
                     >
                       Open MITRE Matrix →
@@ -1164,6 +1209,14 @@ export const IncidentInvestigationPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* On-Demand Threat Intelligence Enrichment Modal */}
+      <ThreatIntelModal
+        isOpen={threatIntelOpen}
+        onClose={() => setThreatIntelOpen(false)}
+        initialIp={threatIntelIp}
+        onAttachEvidenceNote={handleAttachIntelToIncident}
+      />
     </div>
   );
 };

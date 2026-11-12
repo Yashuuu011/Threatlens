@@ -7,6 +7,7 @@ import {
   Clock,
   FileSpreadsheet,
   FolderPlus,
+  Globe,
   Maximize2,
   MessageSquarePlus,
   Minimize2,
@@ -18,6 +19,7 @@ import { api } from '../services/api';
 import { AlertDetail, AlertItem, AlertStatus } from '../types';
 import { AlertStatusBadge, SeverityBadge } from '../components/SeverityBadge';
 import { formatTimestamp } from '../utils/formatters';
+import { ThreatIntelModal } from '../components/ThreatIntelModal';
 
 const ALERT_STATUSES: AlertStatus[] = [
   'New',
@@ -59,6 +61,26 @@ export const AlertsManagementPage: React.FC = () => {
   const [assignedTo, setAssignedTo] = useState('');
   const [noteInput, setNoteInput] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  // Contextual Threat Intelligence Enrichment State
+  const [threatIntelOpen, setThreatIntelOpen] = useState(false);
+  const [threatIntelIp, setThreatIntelIp] = useState<string>('');
+
+  const handleOpenThreatIntel = (ip: string) => {
+    setThreatIntelIp(ip);
+    setThreatIntelOpen(true);
+  };
+
+  const handleAttachIntelToAlert = async (intelNote: string) => {
+    if (!selectedAlert) return;
+    try {
+      await api.addAlertNote(selectedAlert.id, intelNote);
+      setActionFeedback(`Threat intelligence attached to alert #${selectedAlert.id}`);
+      await loadAlertDetail(selectedAlert.id);
+    } catch (err: any) {
+      setActionFeedback(`Failed to attach note: ${err.message}`);
+    }
+  };
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
@@ -441,6 +463,17 @@ export const AlertsManagementPage: React.FC = () => {
                       </>
                     )}
                   </button>
+                  {selectedAlert.source_ip && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenThreatIntel(selectedAlert.source_ip!)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#151f32] hover:bg-[#1e2c45] border border-cyan-500/40 text-cyan-300 font-medium shrink-0"
+                      title="Enrich alert with Threat Intelligence"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                      Threat Intel
+                    </button>
+                  )}
                   <button
                     onClick={handleEscalateToIncident}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-500 text-white font-medium shrink-0"
@@ -475,16 +508,12 @@ export const AlertsManagementPage: React.FC = () => {
                   </div>
                   {selectedAlert.source_ip && (
                     <button
-                      onClick={() =>
-                        navigate(
-                          `/threat-intelligence?ip=${encodeURIComponent(
-                            selectedAlert.source_ip!
-                          )}`
-                        )
-                      }
-                      className="text-[10px] text-cyan-400 hover:underline"
+                      type="button"
+                      onClick={() => handleOpenThreatIntel(selectedAlert.source_ip!)}
+                      className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 mt-0.5"
                     >
-                      Check Reputation →
+                      <Globe className="w-3 h-3 text-cyan-400" />
+                      Enrich Threat Intel →
                     </button>
                   )}
                 </div>
@@ -695,6 +724,14 @@ export const AlertsManagementPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* On-Demand Threat Intelligence Enrichment Modal */}
+      <ThreatIntelModal
+        isOpen={threatIntelOpen}
+        onClose={() => setThreatIntelOpen(false)}
+        initialIp={threatIntelIp}
+        onAttachEvidenceNote={handleAttachIntelToAlert}
+      />
     </div>
   );
 };

@@ -3,12 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { OverviewDashboardPage } from './pages/OverviewDashboardPage';
 import { SecurityEventsExplorerPage } from './pages/SecurityEventsExplorerPage';
-import { ThreatDetectionPage } from './pages/ThreatDetectionPage';
 import { AlertsManagementPage } from './pages/AlertsManagementPage';
-import { IncidentInvestigationPage } from './pages/IncidentInvestigationPage';
 import { DetectionRulesPage } from './pages/DetectionRulesPage';
-import { ThreatIntelligencePage } from './pages/ThreatIntelligencePage';
-import { AnalyticsReportsPage } from './pages/AnalyticsReportsPage';
+import { IncidentInvestigationPage } from './pages/IncidentInvestigationPage';
 import { SystemConfigurationPage } from './pages/SystemConfigurationPage';
 
 export const AppRoutes: React.FC = () => {
@@ -20,17 +17,20 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route element={<MainLayout onRealtimeRefresh={handleRealtimeRefresh} />}>
+        {/* 6 Primary SIEM & SOC Modules */}
         <Route path="/" element={<OverviewDashboardPage refreshTrigger={refreshTick} />} />
         <Route path="/events" element={<SecurityEventsExplorerPage />} />
-        <Route path="/detections" element={<ThreatDetectionPage />} />
         <Route path="/alerts" element={<AlertsManagementPage />} />
         <Route path="/alerts/:alertId" element={<AlertsManagementPage />} />
-        <Route path="/incidents" element={<IncidentInvestigationPage />} />
         <Route path="/rules" element={<DetectionRulesPage />} />
-        <Route path="/threat-intelligence" element={<ThreatIntelligencePage />} />
-        <Route path="/analytics" element={<AnalyticsReportsPage />} />
+        <Route path="/incidents" element={<IncidentInvestigationPage />} />
         <Route path="/system" element={<SystemConfigurationPage />} />
-        <Route path="/monitoring" element={<SystemConfigurationPage />} />
+
+        {/* Backward-compatible redirects for merged & consolidated modules */}
+        <Route path="/detections" element={<Navigate to="/rules?tab=mitre" replace />} />
+        <Route path="/analytics" element={<Navigate to="/?tab=analytics" replace />} />
+        <Route path="/threat-intelligence" element={<Navigate to="/alerts" replace />} />
+        <Route path="/monitoring" element={<Navigate to="/system" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
@@ -46,4 +46,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

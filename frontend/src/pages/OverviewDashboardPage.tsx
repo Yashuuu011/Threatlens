@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertOctagon,
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
   Database,
+  FileSpreadsheet,
+  FileText,
+  LayoutDashboard,
   Play,
   RefreshCw,
   Server,
@@ -33,6 +37,7 @@ import {
   SeverityBadge,
 } from '../components/SeverityBadge';
 import { formatShortTime, formatTimestamp } from '../utils/formatters';
+import { AnalyticsReportsSection } from '../components/AnalyticsReportsSection';
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: '#ef4444',
@@ -45,6 +50,12 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
   refreshTrigger,
 }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview';
+  const setTab = (tab: 'overview' | 'analytics') => {
+    setSearchParams({ tab });
+  };
+
   const [data, setData] = useState<OverviewDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,21 +145,31 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={api.getCsvReportUrl()}
+            download
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#151f32] hover:bg-[#1e2c45] border border-cyan-500/30 text-cyan-300 text-xs font-medium"
+            title="Download SIEM Analytics CSV Report"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            Export CSV
+          </a>
+          <a
+            href={api.getPdfReportUrl()}
+            download
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium"
+            title="Download SIEM Executive PDF Report"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Export PDF
+          </a>
           <button
             onClick={() => handleQuickSimulate('brute_force')}
             disabled={simulating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#151f32] hover:bg-[#1e2c45] border border-cyan-500/30 text-cyan-300 text-xs font-medium"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#151f32] hover:bg-[#1e2c45] border border-[#243554] text-slate-200 text-xs font-medium"
           >
-            <Play className="w-3.5 h-3.5" />
-            Simulate Brute-Force
-          </button>
-          <button
-            onClick={() => handleQuickSimulate('all')}
-            disabled={simulating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium"
-          >
-            <Play className="w-3.5 h-3.5" />
-            {simulating ? 'Ingesting Telemetry...' : 'Run Full Attack Simulation'}
+            <Play className="w-3.5 h-3.5 text-cyan-400" />
+            Simulate Attack
           </button>
           <button
             onClick={fetchDashboard}
@@ -160,7 +181,37 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
         </div>
       </div>
 
-      {/* 6 KPI Metric Cards */}
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#1e2c45] pb-2">
+        <button
+          onClick={() => setTab('overview')}
+          className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-all ${
+            currentTab === 'overview'
+              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#151f32]'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Live SOC Operations
+        </button>
+        <button
+          onClick={() => setTab('analytics')}
+          className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-all ${
+            currentTab === 'analytics'
+              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#151f32]'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Security Analytics & Executive Reports
+        </button>
+      </div>
+
+      {currentTab === 'analytics' ? (
+        <AnalyticsReportsSection />
+      ) : (
+        <>
+          {/* 6 KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div
           onClick={() => navigate('/events')}
@@ -692,6 +743,8 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
