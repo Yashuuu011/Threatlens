@@ -29,7 +29,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { api } from '../services/api';
+import { api, getCustomApiUrl, setCustomApiUrl, resolveApiBase } from '../services/api';
 import { OverviewDashboardData } from '../types';
 import {
   AlertStatusBadge,
@@ -60,6 +60,19 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [simulating, setSimulating] = useState<boolean>(false);
+  const [customUrlInput, setCustomUrlInput] = useState<string>(() => getCustomApiUrl());
+  const [saveUrlSuccess, setSaveUrlSuccess] = useState<boolean>(false);
+
+  const handleSaveApiUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCustomApiUrl(customUrlInput);
+    setSaveUrlSuccess(true);
+    setError(null);
+    setLoading(true);
+    setTimeout(() => {
+      fetchDashboard();
+    }, 200);
+  };
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -111,12 +124,41 @@ export const OverviewDashboardPage: React.FC<{ refreshTrigger?: number }> = ({
 
   if (error && !data) {
     return (
-      <div className="soc-panel p-6 border-red-500/40 bg-red-950/10 text-red-300 space-y-3" data-testid="dashboard-error">
+      <div className="soc-panel p-6 border-red-500/40 bg-red-950/10 text-red-300 space-y-4" data-testid="dashboard-error">
         <div className="flex items-center gap-2 font-semibold">
           <AlertOctagon className="w-5 h-5 text-red-400" />
           <span>Unable to Load Dashboard Telemetry</span>
         </div>
         <p className="text-xs text-red-200">{error}</p>
+
+        <div className="p-4 rounded bg-[#090d16] border border-[#1e2c45] space-y-3 max-w-xl text-xs">
+          <div className="font-semibold text-white flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <span>Backend API Endpoint Configuration</span>
+            <span className="text-[10px] text-slate-400 font-mono">Resolved: {resolveApiBase()}</span>
+          </div>
+          <p className="text-slate-400 text-[11px] leading-relaxed">
+            If your backend is deployed on Render (e.g. <span className="font-mono text-cyan-300">https://your-backend.onrender.com</span>), enter the URL below to connect this frontend:
+          </p>
+          <form onSubmit={handleSaveApiUrl} className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={customUrlInput}
+              onChange={(e) => setCustomUrlInput(e.target.value)}
+              placeholder="https://threatlens-backend.onrender.com"
+              className="flex-1 bg-[#151f32] border border-[#243554] rounded px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+            />
+            <button
+              type="submit"
+              className="px-3.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-medium shrink-0"
+            >
+              Connect Backend
+            </button>
+          </form>
+          {saveUrlSuccess && (
+            <p className="text-emerald-400 text-[11px]">Backend URL saved! Reconnecting...</p>
+          )}
+        </div>
+
         <button
           onClick={fetchDashboard}
           className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-medium"

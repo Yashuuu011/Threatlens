@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { api } from '../services/api';
+import { api, resolveApiBase } from '../services/api';
 
 export type RealtimeConnectionState =
   | 'websocket_live'
@@ -144,11 +144,20 @@ export function useRealtimeStream(onStreamUpdate?: () => void) {
       if (unmounted) return;
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = import.meta.env.VITE_WS_URL
-          ? import.meta.env.VITE_WS_URL.startsWith('ws')
+        let wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        if (import.meta.env.VITE_WS_URL) {
+          wsUrl = import.meta.env.VITE_WS_URL.startsWith('ws')
             ? import.meta.env.VITE_WS_URL
-            : `${protocol}//${window.location.host}${import.meta.env.VITE_WS_URL}`
-          : `${protocol}//${window.location.host}/ws`;
+            : `${protocol}//${window.location.host}${import.meta.env.VITE_WS_URL}`;
+        } else {
+          const apiBase = resolveApiBase();
+          if (apiBase.startsWith('http')) {
+            const urlObj = new URL(apiBase);
+            const wsProto = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsUrl = `${wsProto}//${urlObj.host}/ws`;
+          }
+        }
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;

@@ -12,9 +12,49 @@ import {
   UserProfile,
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'threatlens_auth_token';
 const USER_KEY = 'threatlens_auth_user';
+const API_URL_OVERRIDE_KEY = 'threatlens_api_url';
+
+export function resolveApiBase(): string {
+  try {
+    const custom = localStorage.getItem(API_URL_OVERRIDE_KEY);
+    if (custom && custom.trim()) {
+      const clean = custom.trim().replace(/\/+$/, '');
+      return clean.endsWith('/api') ? clean : `${clean}/api`;
+    }
+  } catch {
+    // ignore
+  }
+
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (envUrl) {
+    const clean = envUrl.replace(/\/+$/, '');
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
+  }
+
+  return '/api';
+}
+
+export function setCustomApiUrl(url: string): void {
+  try {
+    if (!url || !url.trim()) {
+      localStorage.removeItem(API_URL_OVERRIDE_KEY);
+    } else {
+      localStorage.setItem(API_URL_OVERRIDE_KEY, url.trim());
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getCustomApiUrl(): string {
+  try {
+    return localStorage.getItem(API_URL_OVERRIDE_KEY) || import.meta.env.VITE_API_BASE_URL || '';
+  } catch {
+    return import.meta.env.VITE_API_BASE_URL || '';
+  }
+}
 
 export function getStoredToken(): string | null {
   try {
@@ -61,7 +101,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const base = resolveApiBase();
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const fullUrl = `${base}${cleanPath}`;
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });
@@ -379,13 +423,13 @@ export const api = {
     }),
 
   // Report Download URLs
-  getCsvReportUrl: () => `${API_BASE}/reports/export/csv`,
-  getPdfReportUrl: () => `${API_BASE}/reports/export/pdf`,
+  getCsvReportUrl: () => `${resolveApiBase()}/reports/export/csv`,
+  getPdfReportUrl: () => `${resolveApiBase()}/reports/export/pdf`,
   getIncidentReport: (incidentId: string | number) =>
     request<any>(`/reports/incidents/${encodeURIComponent(String(incidentId))}`),
   getIncidentCsvReportUrl: (incidentId: string | number) =>
-    `${API_BASE}/reports/incidents/${encodeURIComponent(String(incidentId))}/csv`,
+    `${resolveApiBase()}/reports/incidents/${encodeURIComponent(String(incidentId))}/csv`,
   getIncidentPdfReportUrl: (incidentId: string | number) =>
-    `${API_BASE}/reports/incidents/${encodeURIComponent(String(incidentId))}/pdf`,
+    `${resolveApiBase()}/reports/incidents/${encodeURIComponent(String(incidentId))}/pdf`,
 };
 

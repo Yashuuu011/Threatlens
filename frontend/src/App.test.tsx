@@ -15,6 +15,9 @@ import { SeverityBadge, AlertStatusBadge, IncidentStatusBadge } from './componen
 import { api } from './services/api';
 
 vi.mock('./services/api', () => ({
+  getCustomApiUrl: vi.fn(() => ''),
+  setCustomApiUrl: vi.fn(),
+  resolveApiBase: vi.fn(() => '/api'),
   api: {
     getOverviewDashboard: vi.fn(),
     simulateScenario: vi.fn(),
